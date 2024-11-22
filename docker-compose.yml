@@ -1,0 +1,48 @@
+services:
+  otel-collector:
+    container_name: otel-collector
+    image: otel/opentelemetry-collector-contrib:0.113.0
+    restart: always
+    command:
+      - --config=/etc/otelcol-cont/otel-collector.yml
+    volumes:
+      - ./collector/otel-collector.yml:/etc/otelcol-cont/otel-collector.yml
+    ports:
+      - '4317'
+    networks:
+      - tracing_net
+    depends_on:
+      - tempo
+
+  tempo:
+    image: grafana/tempo:latest
+    command: ['-config.file=/etc/tempo.yml']
+    volumes:
+      - ./tempo/tempo.yml:/etc/tempo.yml
+    ports:
+      - '3100:3100'
+      - '4317:4317'
+      - '4318:4318'
+    networks:
+      - tracing_net
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/datasources
+      - grafana_data:/var/lib/grafana
+    networks:
+      - tracing_net
+
+volumes:
+  grafana_data:
+  tempo_data:
+
+networks:
+  tracing_net:
+    driver: bridge
+    name: tracing_net
+
