@@ -8,27 +8,89 @@ services:
     volumes:
       - ./collector/otel-collector.yml:/etc/otelcol-cont/otel-collector.yml
     ports:
-      - '4317'
+      - '4317:4317'
+      - '4318:4318'
+      - '8888:8888'
+      - '8889:8889'
     networks:
       - tracing_net
     depends_on:
       - tempo
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/metrics"]
+      interval: 30s
+      retries: 3
 
   tempo:
+    container_name: tempo
     image: grafana/tempo:latest
     command: ['-config.file=/etc/tempo.yml']
     volumes:
       - ./tempo/tempo.yml:/etc/tempo.yml
     ports:
-      - '3100:3100'
-      - '4317:4317'
-      - '4318:4318'
+      - '3200:3200'
+      - '4321:4317'
+      - '4322:4318'
     networks:
       - tracing_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3200/health"]
+      interval: 30s
+      retries: 3
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - '3100:3100'
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yml
+    networks:
+      - tracing_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3100/ready"]
+      interval: 30s
+      retries: 3
+
+  promtail:
+    container_name: promtail
+    image: grafana/promtail:latest
+    volumes:
+      - ./promtail/config.yml:/etc/promtail/config.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - promtail_positions:/tmp/positions
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - tracing_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/metrics"]
+      interval: 30s
+      retries: 3
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    restart: always
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - '9090:9090'
+    networks:
+      - tracing_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      retries: 3
 
   grafana:
     container_name: grafana
-    image: grafana/grafana
+    image: grafana/grafana:latest
     ports:
       - '3000:3000'
     volumes:
@@ -36,10 +98,16 @@ services:
       - grafana_data:/var/lib/grafana
     networks:
       - tracing_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      retries: 3
 
 volumes:
   grafana_data:
-  tempo_data:
+  loki_data:
+  prometheus_data:
+  promtail_positions:
 
 networks:
   tracing_net:
