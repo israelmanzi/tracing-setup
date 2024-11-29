@@ -10,7 +10,7 @@ services:
     ports:
       - '8889'
       - '4317'
-      - '4318'
+      - '4318:4318'
     networks:
       - tracing_net
     depends_on:
@@ -24,9 +24,22 @@ services:
     command: ['-config.file=/etc/tempo.yml']
     volumes:
       - ./tempo/tempo.yml:/etc/tempo.yml
+      # - ./tempo/data:/tmp/tempo
     ports:
       - '4317'
       - '3200'
+    networks:
+      - tracing_net
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - ./promtail/config.yml:/etc/promtail/config.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - promtail_positions:/tmp/positions
+    command: -config.file=/etc/promtail/config.yml
     networks:
       - tracing_net
 
@@ -36,10 +49,12 @@ services:
     container_name: loki
     ports:
       - '3100'
-    # volumes:
-    # - ./loki/loki-config.yml:/etc/loki/local-config.yml
-    #   - loki_data:/loki
+    volumes:
+      # - ./loki/loki-config.yml:/etc/loki/local-config.yml
+      - loki_data:/loki
     command: -config.file=/etc/loki/local-config.yaml
+    depends_on:
+      - promtail
     networks:
       - tracing_net
 
@@ -68,8 +83,11 @@ services:
     ports:
       - '3000:3000'
     volumes:
-      - ./grafana:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning:/etc/grafana/provisioning
       - grafana_data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
     depends_on:
       - prometheus
       - loki
@@ -85,3 +103,4 @@ volumes:
   grafana_data:
   loki_data:
   prometheus_data:
+  promtail_positions:
