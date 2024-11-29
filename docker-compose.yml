@@ -1,21 +1,22 @@
 services:
   collector:
     container_name: collector
-    image: otel/opentelemetry-collector-contrib:0.91.0 
+    image: otel/opentelemetry-collector-contrib:0.91.0
     restart: always
     command:
       - --config=/etc/otelcol-cont/otel-collector.yml
     volumes:
       - ./collector/otel-collector.yml:/etc/otelcol-cont/otel-collector.yml
     ports:
-      - '4317:4317'
-      - '8889:8889'
-    # networks:
-    #   - tracing_net
+      - '8889'
+      - '4317'
+      - '4318'
+    networks:
+      - tracing_net
     depends_on:
       - tempo
       - loki
-    
+
   tempo:
     container_name: tempo
     restart: always
@@ -24,57 +25,45 @@ services:
     volumes:
       - ./tempo/tempo.yml:/etc/tempo.yml
     ports:
-      - '3200:3200'
       - '4317'
-    # networks:
-    #   - tracing_net
-  
+      - '3200'
+    networks:
+      - tracing_net
+
   loki:
     image: grafana/loki:latest
     restart: always
     container_name: loki
     ports:
-      - '3100:3100'
-    volumes:
-      - ./loki/loki-config.yml:/etc/loki/local-config.yml
-      - loki_data:/loki
-    command: -config.file=/etc/loki/local-config.yml
-    # networks:
-    #   - tracing_net
-   
-  # promtail:
-  #   container_name: promtail
-  #   image: grafana/promtail:latest
-  #   volumes:
-  #     - ./promtail/config.yml:/etc/promtail/config.yml
-  #     - /var/lib/docker/containers:/var/lib/docker/containers:ro
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #     - promtail_positions:/tmp/positions
-  #   ports:
-  #     - '9090:9090'
-  #   command: -config.file=/etc/promtail/config.yml
-  #   depends_on:
-  #     - collector 
-  #   networks:
-  #     - tracing_net
-    
+      - '3100'
+    # volumes:
+    # - ./loki/loki-config.yml:/etc/loki/local-config.yml
+    #   - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - tracing_net
+
   prometheus:
     container_name: prometheus
-    image: prom/prometheus:latest
+    image: prom/prometheus
     restart: always
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --enable-feature=exemplar-storage
+      - --web.enable-remote-write-receiver
     ports:
       - '9090:9090'
     depends_on:
       - collector
-    # networks:
-    #   - tracing_net
-    
+    networks:
+      - tracing_net
+
   grafana:
     container_name: grafana
-    image: grafana/grafana:latest
+    image: grafana/grafana
     restart: always
     ports:
       - '3000:3000'
@@ -85,17 +74,14 @@ services:
       - prometheus
       - loki
       - tempo
-    # networks:
-    #   - tracing_net
-    
+    networks:
+      - tracing_net
+
+networks:
+  tracing_net:
+    external: true
+
 volumes:
   grafana_data:
   loki_data:
   prometheus_data:
-  promtail_positions:
-
-# networks:
-#   tracing_net:
-#     driver: bridge
-#     name: tracing_net
-

@@ -2,6 +2,7 @@ receivers:
   otlp:
     protocols:
       grpc:
+      http:
 
 processors:
   batch:
@@ -11,19 +12,19 @@ processors:
 
 exporters:
   prometheusremotewrite:
-    endpoint: "http://prometheus:9090/api/v1/write"
+    endpoint: 'http://prometheus:9090/api/v1/write'
 
   prometheus:
-    endpoint: "0.0.0.0:8889"
+    endpoint: '0.0.0.0:8889'
     enable_open_metrics: true
- 
+
   otlp/tempo:
-    endpoint: "http://tempo:4317"
+    endpoint: 'http://tempo:4317'
     tls:
       insecure: true
 
   loki:
-    endpoint: "http://loki:3100/loki/api/v1/push"
+    endpoint: 'http://loki:3100/loki/api/v1/push'
 
 service:
   pipelines:

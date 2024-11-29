@@ -7,7 +7,6 @@ distributor:
       protocols:
         http:
         grpc:
-    opencensus:
 
 ingester:
   max_block_duration: 5m
@@ -37,4 +36,3 @@ storage:
 
 overrides:
   metrics_generator_processors: [service-graphs, span-metrics]
-
