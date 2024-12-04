@@ -2,7 +2,7 @@ groups:
   - name: InstanceMonitoring
     rules:
       - alert: InstanceDown
-        expr: up == 0
+        expr: probe_http_status_code{instance='http://web-app:8080', job='blackbox'} == 0 or probe_http_status_code{instance='http://web-app:8080', job='blackbox'} == 500
         for: 10s
         labels:
           severity: critical

@@ -11,7 +11,7 @@ route:
 receivers:
   - name: 'slack-notifications'
     slack_configs:
-      - api_url: 'https://hooks.slack.com/services/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'
+      - api_url: 'https://hooks.slack.com/services/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'
         send_resolved: true
         text: |
           <!channel>

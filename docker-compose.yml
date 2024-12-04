@@ -76,6 +76,18 @@ services:
     networks:
       - tracing_net
 
+  blackbox:
+    container_name: blackbox
+    image: prom/blackbox-exporter
+    ports:
+      - '9115:9115'
+    command:
+      - '--config.file=/etc/blackbox_exporter/config.yml'
+    volumes:
+      - ./prometheus/blackbox.yml:/etc/blackbox_exporter/config.yml
+    networks:
+      - tracing_net
+
   alertmanager:
     container_name: alertmanager
     image: prom/alertmanager:v0.25.0
