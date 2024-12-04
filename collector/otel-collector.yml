@@ -17,6 +17,11 @@ exporters:
   prometheus:
     endpoint: '0.0.0.0:8889'
     enable_open_metrics: true
+    const_labels:
+      label1: value1
+    resource_to_telemetry_conversion:
+      enabled: true
+    send_timestamps: true
 
   otlp/tempo:
     endpoint: 'http://tempo:4317'
@@ -31,7 +36,7 @@ service:
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [prometheusremotewrite]
+      exporters: [prometheus, prometheusremotewrite]
     traces:
       receivers: [otlp]
       processors: [batch]
